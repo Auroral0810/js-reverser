@@ -77,5 +77,5 @@ htmlcov/
 .pytest_cache/
 
 # 排除特定文件夹
-!Review_Reverse-master/**
-!Geetest-AST--master/**
+Review_Reverse-master/
+Geetest-AST--master/
