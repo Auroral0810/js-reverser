@@ -1,0 +1,24 @@
+{
+  "action": "http://10.255.252.20/a70.htm?wlanuserip=10.231.117.127&wlanacip=null&wlanacname=null&vlanid=0&ip=10.231.117.127&ssid=null&areaID=null&mac=00-00-00-00-00-00",
+  "method": "post",
+  "data": {
+    "0MKKey": {
+      "name": "0MKKey",
+      "value": "登 录",
+      "type": "submit",
+      "id": ""
+    },
+    "DDDDD": {
+      "name": "DDDDD",
+      "value": "",
+      "type": "text",
+      "id": ""
+    },
+    "upass": {
+      "name": "upass",
+      "value": "",
+      "type": "password",
+      "id": ""
+    }
+  }
+}

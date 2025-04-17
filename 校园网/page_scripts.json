@@ -1,0 +1,23 @@
+{
+  "script_0": {
+    "src": "http://10.255.252.20/a42.js"
+  },
+  "script_1": {
+    "inline": "\ndocument.write('<script language=javascript src=\"a41.js?version=1.4_'+(new Date()).valueOf()+'\"><\\/script>');\ndocument.write('<script language=javascript src=\"'+window.location.protocol + '//' + window.location.hostname + ':801/eportal/extern/1/config.js?version=1.4_'+(new Date()).valueOf()+'\"><\\/script>');\n"
+  },
+  "script_2": {
+    "src": "http://10.255.252.20/a41.js?version=1.4_1744003310574"
+  },
+  "script_3": {
+    "src": "http://10.255.252.20:801/eportal/extern/1/config.js?version=1.4_1744003310581"
+  },
+  "script_4": {
+    "inline": "\nsv=0;sv1=0;v6='http://[::]:9002/v6                                     ';myv6ip='                                       ';v4serip='10.255.252.20'  ;m46=0;v46ip='10.231.117.127'                         ;\nvid=0   ;mip=010231117127;Gno=0000;vlanid=\"0\"   ;AC=\"\";                          ipm=\"0afffc14\";ss1=\"0010f3767eed\";ss2=\"0000\";ss3=\"0ae7757f\";ss4=\"000000000000\";ss5=\"10.231.117.127\" ;ss6=\"10.255.252.20\"  ;timet=00000000000;\nosele=0;//1=不弹窗\ndomain='[::]';// ////////////////////////////////////////..."
+  },
+  "script_5": {
+    "src": "http://10.255.252.20:801/eportal/extern/1/ip/7/pc.js?version=1.4_1744003311075"
+  },
+  "script_6": {
+    "src": "http://10.255.252.20:801/eportal/extern/1/ip/7/loginbox.js?version=1.4_1744003311075"
+  }
+}
