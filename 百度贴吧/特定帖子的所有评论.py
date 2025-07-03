@@ -14,29 +14,44 @@ import ast
 import signal
 import sys
 import requests
+import threading
+import select
+import termios
+import tty
 
 cookies = {
-    'BAIDUID': 'D7655165AC8A160FDAADE4327E8B942E:FG=1',
-    'BAIDUID_BFESS': 'D7655165AC8A160FDAADE4327E8B942E:FG=1',
+    'XFI': '2093d670-1c01-11f0-956a-d5e4b44917a6',
+    'XFT': '4DCa5a2JsJ1pfsHLTrXksX39vRjidKrylHy7ZGB1Ww4=',
+    'XFCS': 'E4B769DBDB858100D0E4FCA8236508C29093536A39921B23F14CE74A8C2D2071',
     'Hm_lvt_292b2e1608b0823c1cb6beef7243ef34': '1742396943,1744816776',
     'HMACCOUNT': 'DDF927EE5DF25454',
     'BAIDU_WISE_UID': 'wapp_1744869667916_527',
     'USER_JUMP': '-1',
     'video_bubble0': '1',
-    'ZFY': 'bUGIEG4sK0R6gP4ojZbPri886J0wvfhS:B6BdB1xUMmA:C',
     'st_key_id': '17',
     'arialoadData': 'false',
+    'XFI': '43199c00-1b54-11f0-9af1-bd2512ae70f5',
+    'XFCS': '0D59087C50055AF7AFCE1C99B935A9FFC8BE6988C9735F91CB3F15C1CA562AF9',
+    'XFT': 'in9XlDI4eZWK9yfWRgWbo6yfDkfqYSHC+3n/8x+SPOk=',
+    'BAIDUID': 'FF85DF65CC7463F3726D5301B69C0672:FG=1',
+    'BAIDUID_BFESS': 'FF85DF65CC7463F3726D5301B69C0672:FG=1',
+    'PSTM': '1744882843',
+    'BDRCVFR[w2jhEs_Zudc]': 'qenLZMajXe6myF_ugPWpi4WUvY',
+    'H_PS_PSSID': '61027_62325_62344_62485_62638_62880_62889_62926_62920_62967_62945',
+    'delPer': '0',
+    'PSINO': '5',
+    'BIDUPSID': '950D047CF79B4A0F8F86462CD08D849F',
+    'BDORZ': 'B490B5EBF6F3CD402E515D22BCDA1598',
+    'wise_device': '0',
+    'ZFY': 'vPvcHKcAOYNAEQzrtxcQeq1sYgTvXfdFtCh6nqy7yMA:C',
+    'Hm_lpvt_292b2e1608b0823c1cb6beef7243ef34': '1744945159',
+    'BA_HECTOR': '2h0l2ka02l04010g8h2h018k208h2h1k03g0824',
+    'tb_as_data': 'a00a64f9f01930b8883e0c740b1aa736dc2feac60fa1211d6da238d3d2007ab9faec481637d4d53124a4b42e346376f53045490560a9185a95103ba8e2ce6611ee1d49382c181a67b5cc193b975eea512801d6be86dd10cf95c283523b56400d03c9b6b197e505ad5cbe54e41b6842e7',
+    'ab_sr': '1.0.1_MzhhZjQ5OTIyOTM5ZjU0NDY1NGI5MjczMDhjMmM0NTgwYTU5NmJlN2U1NDhiNjlkYTNiMGFkYzU0MDFmODk1MmVlMzMxMGFlNjk0N2I3ZjYzYzk4MGNjYjhkNjNmNjhjNTkxMTViN2UzYjZlZDEyMmUwNzVmZGM4OWNmYzliZDdlZjIxNjk5MDlmZWJkNWQyZmE4M2I2ZmIyMGY5NmY0Mw==',
+    'st_data': '1b7959726d026e47f7da96ee99c5461dcbc589b982a914604572941e17b8ead76378b920eaf5b94a7677f8d63ef7fa841730270a32190269917d39a1ac92b8019485573c25c1f1937ec295362cdb8aac205be5e8c6d2a1013712886890475bb2ade95d47e3a80a4b31cbaa0759138636a61ea161f8443823b574f9ac8d630d1b000cc32c224a4a86e1819874538012b6',
+    'st_sign': 'da22e930',
     'ppfuid': 'FOCoIC3q5fKa8fgJnwzbE0LGziLN3VHbX8wfShDP6RCsfXQp/69CStRUAcn/QmhIlFDxPrAc/s5tJmCocrihdwitHd04Lvs3Nfz26Zt2holplnIKVacidp8Sue4dMTyfg65BJnOFhn1HthtSiwtygiD7piS4vjG/W9dLb1VAdqNvjLowygVbK9xeY8tvcT1iO0V6uxgO+hV7+7wZFfXG0MSpuMmh7GsZ4C7fF/kTgmvlMIA/tB2qdnJ8KkulgesR5YKU+qTqtaaBkWIZO5dn/GldC1S4QUhUhpm5KMoOoF81v2iwj13daM+9aWJ5GJCQM+RpBohGNhMcqCHhVhtXpVObaDCHgWJZH3ZrTGYHmi7XJB9z3y2o8Kqxep5XBCsugNOW5C73e/g54kuY4PKIS71bGmnPunNtMIatWdCpBi6yoMEZCNh1huwbMdWwuuXVnvNXIEW2pwj4BXINSNFrPKCGZHtLbt/i6efsLSLARZuIGhYqrYfhHGZqJNx2uWmglAIQEZY21OyYDgpfKN3zxRn6ONqHK83MkBENWBMWSAwea/+1VSNUTGfIG+NKu2s+g28sOzjnLUnUE9KukMAMTPZYfT79sbFYuntY0Ry6GX3OsRAJVdXPXKlPRQiighN2h3utZNfUsAGL2WWa3tubT9td9rGfOenGkLOGCRladXTg1IKPDQ9z3/DiqHtAIbmyu3emEg6nEYu6lQuvYr6/UJpAq7e+CnVRC2DzwICP6cu9A5mNm34ZPuoRV+zY3FkhMa5PpAytGwAf1nqFDiyU+WHcGDy5llZtI5Ig4rvXzcdIxeODdssbd+W/AgOwxO3JdRGSluqM4FuAgHCvdnqfGnnbe3vsHq3LuF7pombT65cVprejPaivGVaWugm+VA1kVl5OE/aBXOg67P9UlCyJKVyutwgoMp5Aa/ZkjblrEvPdXZFhAgvw25kAwV0TwSXSe5Q/vbh3nl529wNGdJ0E/Al3XsmHJdLSZ9wC3mJe+ZNDrSwzO8uzPTGJRstuhQcx/x5a3E+Qkao4W1aMhW15Bgywf8BpImierD5YuJm8aNh+b2nRqUTK6NqmhPLvsfMNxShTXBRJdrnFL9nqFcSvY6cuLQt09VwaPPyWktx1V5J+b2nRqUTK6NqmhPLvsfMNZ/k8RFFJMWot30FNQcvJjgmLcRAsZA9ozVp4fEbVslkfSzVKL8rDNNpNjO7rOJCKUwXtmNU/nsKC0PSzAP3Kq4wL4SK3t1tHw4eMSEHL2FCmmrSArB56dw/GBL+N3SuP',
-    'tb_as_data': '3b670d9989e15819550f7ed3678acdb0dc06360c51d2a06cc77fb3928a8a30577379583f90a92cbdc8078b63434a84fa2672c6dbc4ba70ae95def017b01f3c0c571a0c55e1ee2e49de3deb4b9ad357578b0abb5f5e26afe38b4581669ac5b094b951382c9ba882f41183a18d3b787b1b',
-    'Hm_lpvt_292b2e1608b0823c1cb6beef7243ef34': '1744870424',
-    'XFI': '1e3a7b30-1b53-11f0-8a48-01e571e1a976',
-    'BA_HECTOR': '8gak8h20250la42504ah2521808ga41k0170p24',
-    'ab_sr': '1.0.1_ZjViMjYyMDVhYzVlNDdlOTYxYTY2NjM3NmE0N2FkOTIxNGMzNzM2OGYyYWQxYzc1NThjMjNlZDkzY2E3NjM5YmJmZTMzYjRhZGNjYWU0NmNmZmIyYjliNTMyZDM0ZWQxY2Y4MWNlMmNiYzQwYTAzMGVlOTYzZGI3ZmExZDQ5OGVhNDU2MDk0MjNjMzViZmNhOWI2NDgzZWM4ZWQ2MjQzMg==',
-    'st_data': '1b7959726d026e47f7da96ee99c5461dcbc589b982a914604572941e17b8ead76378b920eaf5b94a7677f8d63ef7fa841730270a32190269917d39a1ac92b8019485573c25c1f1937ec295362cdb8aac205be5e8c6d2a1013712886890475bb287b8ebd799cf5c59aa02bc1c5f1800e75f4d385d7e2c3b676337462b9d4ec4d4863be2f793572d84bcfb141cbfc47304',
-    'st_sign': '32000195',
-    'XFCS': '0C8565CC901470E2144C5EDDDE027807F4D6F052B7C29F3CD05D4227DC11CA87',
-    'XFT': 'ysvgJcsPCqlDsMItQUGz4V7yh3jlq+aZ4nDpLJjTMhs=',
-    'RT': '"z=1&dm=baidu.com&si=f13b43ce-40e1-4fd7-98ea-b0ac26650c14&ss=m9k7vgwi&sl=3g&tt=53ti&bcn=https%3A%2F%2Ffclog.baidu.com%2Flog%2Fweirwood%3Ftype%3Dperf&ld=qxein&ul=qz7pw"',
+    'RT': '"z=1&dm=baidu.com&si=f13b43ce-40e1-4fd7-98ea-b0ac26650c14&ss=m9m6xkd0&sl=3&tt=4bk&bcn=https%3A%2F%2Ffclog.baidu.com%2Flog%2Fweirwood%3Ftype%3Dperf&r=1rywtc6z&ul=d6jo"',
 }
 
 headers = {
@@ -55,7 +70,7 @@ headers = {
     'sec-ch-ua': '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
     'sec-ch-ua-mobile': '?0',
     'sec-ch-ua-platform': '"macOS"',
-    # 'Cookie': 'BAIDUID=D7655165AC8A160FDAADE4327E8B942E:FG=1; BAIDUID_BFESS=D7655165AC8A160FDAADE4327E8B942E:FG=1; Hm_lvt_292b2e1608b0823c1cb6beef7243ef34=1742396943,1744816776; HMACCOUNT=DDF927EE5DF25454; BAIDU_WISE_UID=wapp_1744869667916_527; USER_JUMP=-1; video_bubble0=1; ZFY=bUGIEG4sK0R6gP4ojZbPri886J0wvfhS:B6BdB1xUMmA:C; st_key_id=17; arialoadData=false; ppfuid=FOCoIC3q5fKa8fgJnwzbE0LGziLN3VHbX8wfShDP6RCsfXQp/69CStRUAcn/QmhIlFDxPrAc/s5tJmCocrihdwitHd04Lvs3Nfz26Zt2holplnIKVacidp8Sue4dMTyfg65BJnOFhn1HthtSiwtygiD7piS4vjG/W9dLb1VAdqNvjLowygVbK9xeY8tvcT1iO0V6uxgO+hV7+7wZFfXG0MSpuMmh7GsZ4C7fF/kTgmvlMIA/tB2qdnJ8KkulgesR5YKU+qTqtaaBkWIZO5dn/GldC1S4QUhUhpm5KMoOoF81v2iwj13daM+9aWJ5GJCQM+RpBohGNhMcqCHhVhtXpVObaDCHgWJZH3ZrTGYHmi7XJB9z3y2o8Kqxep5XBCsugNOW5C73e/g54kuY4PKIS71bGmnPunNtMIatWdCpBi6yoMEZCNh1huwbMdWwuuXVnvNXIEW2pwj4BXINSNFrPKCGZHtLbt/i6efsLSLARZuIGhYqrYfhHGZqJNx2uWmglAIQEZY21OyYDgpfKN3zxRn6ONqHK83MkBENWBMWSAwea/+1VSNUTGfIG+NKu2s+g28sOzjnLUnUE9KukMAMTPZYfT79sbFYuntY0Ry6GX3OsRAJVdXPXKlPRQiighN2h3utZNfUsAGL2WWa3tubT9td9rGfOenGkLOGCRladXTg1IKPDQ9z3/DiqHtAIbmyu3emEg6nEYu6lQuvYr6/UJpAq7e+CnVRC2DzwICP6cu9A5mNm34ZPuoRV+zY3FkhMa5PpAytGwAf1nqFDiyU+WHcGDy5llZtI5Ig4rvXzcdIxeODdssbd+W/AgOwxO3JdRGSluqM4FuAgHCvdnqfGnnbe3vsHq3LuF7pombT65cVprejPaivGVaWugm+VA1kVl5OE/aBXOg67P9UlCyJKVyutwgoMp5Aa/ZkjblrEvPdXZFhAgvw25kAwV0TwSXSe5Q/vbh3nl529wNGdJ0E/Al3XsmHJdLSZ9wC3mJe+ZNDrSwzO8uzPTGJRstuhQcx/x5a3E+Qkao4W1aMhW15Bgywf8BpImierD5YuJm8aNh+b2nRqUTK6NqmhPLvsfMNxShTXBRJdrnFL9nqFcSvY6cuLQt09VwaPPyWktx1V5J+b2nRqUTK6NqmhPLvsfMNZ/k8RFFJMWot30FNQcvJjgmLcRAsZA9ozVp4fEbVslkfSzVKL8rDNNpNjO7rOJCKUwXtmNU/nsKC0PSzAP3Kq4wL4SK3t1tHw4eMSEHL2FCmmrSArB56dw/GBL+N3SuP; tb_as_data=3b670d9989e15819550f7ed3678acdb0dc06360c51d2a06cc77fb3928a8a30577379583f90a92cbdc8078b63434a84fa2672c6dbc4ba70ae95def017b01f3c0c571a0c55e1ee2e49de3deb4b9ad357578b0abb5f5e26afe38b4581669ac5b094b951382c9ba882f41183a18d3b787b1b; Hm_lpvt_292b2e1608b0823c1cb6beef7243ef34=1744870424; XFI=1e3a7b30-1b53-11f0-8a48-01e571e1a976; BA_HECTOR=8gak8h20250la42504ah2521808ga41k0170p24; ab_sr=1.0.1_ZjViMjYyMDVhYzVlNDdlOTYxYTY2NjM3NmE0N2FkOTIxNGMzNzM2OGYyYWQxYzc1NThjMjNlZDkzY2E3NjM5YmJmZTMzYjRhZGNjYWU0NmNmZmIyYjliNTMyZDM0ZWQxY2Y4MWNlMmNiYzQwYTAzMGVlOTYzZGI3ZmExZDQ5OGVhNDU2MDk0MjNjMzViZmNhOWI2NDgzZWM4ZWQ2MjQzMg==; st_data=1b7959726d026e47f7da96ee99c5461dcbc589b982a914604572941e17b8ead76378b920eaf5b94a7677f8d63ef7fa841730270a32190269917d39a1ac92b8019485573c25c1f1937ec295362cdb8aac205be5e8c6d2a1013712886890475bb287b8ebd799cf5c59aa02bc1c5f1800e75f4d385d7e2c3b676337462b9d4ec4d4863be2f793572d84bcfb141cbfc47304; st_sign=32000195; XFCS=0C8565CC901470E2144C5EDDDE027807F4D6F052B7C29F3CD05D4227DC11CA87; XFT=ysvgJcsPCqlDsMItQUGz4V7yh3jlq+aZ4nDpLJjTMhs=; RT="z=1&dm=baidu.com&si=f13b43ce-40e1-4fd7-98ea-b0ac26650c14&ss=m9k7vgwi&sl=3g&tt=53ti&bcn=https%3A%2F%2Ffclog.baidu.com%2Flog%2Fweirwood%3Ftype%3Dperf&ld=qxein&ul=qz7pw"',
+    # 'Cookie': 'XFI=2093d670-1c01-11f0-956a-d5e4b44917a6; XFT=4DCa5a2JsJ1pfsHLTrXksX39vRjidKrylHy7ZGB1Ww4=; XFCS=E4B769DBDB858100D0E4FCA8236508C29093536A39921B23F14CE74A8C2D2071; Hm_lvt_292b2e1608b0823c1cb6beef7243ef34=1742396943,1744816776; HMACCOUNT=DDF927EE5DF25454; BAIDU_WISE_UID=wapp_1744869667916_527; USER_JUMP=-1; video_bubble0=1; st_key_id=17; arialoadData=false; XFI=43199c00-1b54-11f0-9af1-bd2512ae70f5; XFCS=0D59087C50055AF7AFCE1C99B935A9FFC8BE6988C9735F91CB3F15C1CA562AF9; XFT=in9XlDI4eZWK9yfWRgWbo6yfDkfqYSHC+3n/8x+SPOk=; BAIDUID=FF85DF65CC7463F3726D5301B69C0672:FG=1; BAIDUID_BFESS=FF85DF65CC7463F3726D5301B69C0672:FG=1; PSTM=1744882843; BDRCVFR[w2jhEs_Zudc]=qenLZMajXe6myF_ugPWpi4WUvY; H_PS_PSSID=61027_62325_62344_62485_62638_62880_62889_62926_62920_62967_62945; delPer=0; PSINO=5; BIDUPSID=950D047CF79B4A0F8F86462CD08D849F; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598; wise_device=0; ZFY=vPvcHKcAOYNAEQzrtxcQeq1sYgTvXfdFtCh6nqy7yMA:C; Hm_lpvt_292b2e1608b0823c1cb6beef7243ef34=1744945159; BA_HECTOR=2h0l2ka02l04010g8h2h018k208h2h1k03g0824; tb_as_data=a00a64f9f01930b8883e0c740b1aa736dc2feac60fa1211d6da238d3d2007ab9faec481637d4d53124a4b42e346376f53045490560a9185a95103ba8e2ce6611ee1d49382c181a67b5cc193b975eea512801d6be86dd10cf95c283523b56400d03c9b6b197e505ad5cbe54e41b6842e7; ab_sr=1.0.1_MzhhZjQ5OTIyOTM5ZjU0NDY1NGI5MjczMDhjMmM0NTgwYTU5NmJlN2U1NDhiNjlkYTNiMGFkYzU0MDFmODk1MmVlMzMxMGFlNjk0N2I3ZjYzYzk4MGNjYjhkNjNmNjhjNTkxMTViN2UzYjZlZDEyMmUwNzVmZGM4OWNmYzliZDdlZjIxNjk5MDlmZWJkNWQyZmE4M2I2ZmIyMGY5NmY0Mw==; st_data=1b7959726d026e47f7da96ee99c5461dcbc589b982a914604572941e17b8ead76378b920eaf5b94a7677f8d63ef7fa841730270a32190269917d39a1ac92b8019485573c25c1f1937ec295362cdb8aac205be5e8c6d2a1013712886890475bb2ade95d47e3a80a4b31cbaa0759138636a61ea161f8443823b574f9ac8d630d1b000cc32c224a4a86e1819874538012b6; st_sign=da22e930; ppfuid=FOCoIC3q5fKa8fgJnwzbE0LGziLN3VHbX8wfShDP6RCsfXQp/69CStRUAcn/QmhIlFDxPrAc/s5tJmCocrihdwitHd04Lvs3Nfz26Zt2holplnIKVacidp8Sue4dMTyfg65BJnOFhn1HthtSiwtygiD7piS4vjG/W9dLb1VAdqNvjLowygVbK9xeY8tvcT1iO0V6uxgO+hV7+7wZFfXG0MSpuMmh7GsZ4C7fF/kTgmvlMIA/tB2qdnJ8KkulgesR5YKU+qTqtaaBkWIZO5dn/GldC1S4QUhUhpm5KMoOoF81v2iwj13daM+9aWJ5GJCQM+RpBohGNhMcqCHhVhtXpVObaDCHgWJZH3ZrTGYHmi7XJB9z3y2o8Kqxep5XBCsugNOW5C73e/g54kuY4PKIS71bGmnPunNtMIatWdCpBi6yoMEZCNh1huwbMdWwuuXVnvNXIEW2pwj4BXINSNFrPKCGZHtLbt/i6efsLSLARZuIGhYqrYfhHGZqJNx2uWmglAIQEZY21OyYDgpfKN3zxRn6ONqHK83MkBENWBMWSAwea/+1VSNUTGfIG+NKu2s+g28sOzjnLUnUE9KukMAMTPZYfT79sbFYuntY0Ry6GX3OsRAJVdXPXKlPRQiighN2h3utZNfUsAGL2WWa3tubT9td9rGfOenGkLOGCRladXTg1IKPDQ9z3/DiqHtAIbmyu3emEg6nEYu6lQuvYr6/UJpAq7e+CnVRC2DzwICP6cu9A5mNm34ZPuoRV+zY3FkhMa5PpAytGwAf1nqFDiyU+WHcGDy5llZtI5Ig4rvXzcdIxeODdssbd+W/AgOwxO3JdRGSluqM4FuAgHCvdnqfGnnbe3vsHq3LuF7pombT65cVprejPaivGVaWugm+VA1kVl5OE/aBXOg67P9UlCyJKVyutwgoMp5Aa/ZkjblrEvPdXZFhAgvw25kAwV0TwSXSe5Q/vbh3nl529wNGdJ0E/Al3XsmHJdLSZ9wC3mJe+ZNDrSwzO8uzPTGJRstuhQcx/x5a3E+Qkao4W1aMhW15Bgywf8BpImierD5YuJm8aNh+b2nRqUTK6NqmhPLvsfMNxShTXBRJdrnFL9nqFcSvY6cuLQt09VwaPPyWktx1V5J+b2nRqUTK6NqmhPLvsfMNZ/k8RFFJMWot30FNQcvJjgmLcRAsZA9ozVp4fEbVslkfSzVKL8rDNNpNjO7rOJCKUwXtmNU/nsKC0PSzAP3Kq4wL4SK3t1tHw4eMSEHL2FCmmrSArB56dw/GBL+N3SuP; RT="z=1&dm=baidu.com&si=f13b43ce-40e1-4fd7-98ea-b0ac26650c14&ss=m9m6xkd0&sl=3&tt=4bk&bcn=https%3A%2F%2Ffclog.baidu.com%2Flog%2Fweirwood%3Ftype%3Dperf&r=1rywtc6z&ul=d6jo"',
 }
 # 全局变量用于保存当前爬取状态，方便在程序退出时保存
 current_post_id = None
@@ -89,6 +104,40 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)  # 处理Ctrl+C
 signal.signal(signal.SIGTERM, signal_handler) # 处理终止信号
 
+# 修改输入超时函数，使其在MacOS上更可靠
+def input_with_timeout(prompt, timeout=5, default=None):
+    """带超时的输入函数，对MacOS更友好，确保超时后自动选择默认值"""
+    print(prompt, end='', flush=True)
+    
+    # 使用更可靠的线程实现
+    result = [default]
+    input_event = threading.Event()
+    
+    def get_input():
+        try:
+            result[0] = input()
+            input_event.set()  # 设置事件，表示输入完成
+        except Exception as e:
+            print(f"输入过程出错: {str(e)}")
+            input_event.set()  # 即使出错也设置事件
+    
+    input_thread = threading.Thread(target=get_input)
+    input_thread.daemon = True
+    input_thread.start()
+    
+    # 等待输入完成或超时
+    is_input_received = input_event.wait(timeout)
+    
+    # 如果没有收到输入事件，说明超时了
+    if not is_input_received:
+        print(f"\n超时 {timeout} 秒，自动选择: {default}")
+        
+        # 这里不用担心线程，因为它是daemon线程，程序结束时会自动终止
+        # 但我们需要确保返回的是默认值
+        return default
+    
+    return result[0]
+
 def update_credentials():
     """让用户输入新的cookie和header"""
     global global_cookies, global_headers  # 声明使用全局变量
@@ -101,7 +150,8 @@ def update_credentials():
     print("="*50 + "\n")
     
     while True:  # 循环直到成功获取有效凭证
-        input_method = input("请选择输入方式 (1/2/3): ").strip()
+        # 修改为超时输入，默认选择3
+        input_method = input_with_timeout("请选择输入方式 (1/2/3): ", timeout=5, default="3").strip()
         
         if input_method == "2":
             # 从文件读取
@@ -342,8 +392,8 @@ def save_comments_to_csv(comments, post_id, csv_file="孙笑川吧_所有评论�
     
     return len(all_data)
 
-def save_comments_to_csv_all(all_posts_comments, csv_file="孙笑川吧_所有评论回复.csv"):
-    """将所有帖子的评论和回复保存到一个CSV文件中（覆盖模式）"""
+def save_comments_to_csv_all(all_posts_comments, csv_file="孙笑川吧_所有评论回复.csv", append_mode=False):
+    """将所有帖子的评论和回复保存到一个CSV文件中，可选择追加模式"""
     all_data = []
     
     for post_id, comments in all_posts_comments.items():
@@ -389,9 +439,15 @@ def save_comments_to_csv_all(all_posts_comments, csv_file="孙笑川吧_所有�
     # 转换为DataFrame
     df = pd.DataFrame(all_data)
     
-    # 保存到CSV文件
-    df.to_csv(csv_file, index=False, encoding='utf-8-sig')
-    print(f"所有数据已保存到 {csv_file}")
+    # 检查是否使用追加模式
+    if append_mode and os.path.isfile(csv_file):
+        # 追加模式：保存到CSV文件
+        df.to_csv(csv_file, mode='a', index=False, header=False, encoding='utf-8-sig')
+        print(f"所有数据已追加到 {csv_file}")
+    else:
+        # 覆盖模式：保存到CSV文件
+        df.to_csv(csv_file, index=False, encoding='utf-8-sig')
+        print(f"所有数据已保存到 {csv_file} (覆盖模式)")
     
     return len(all_data)
 
@@ -453,9 +509,9 @@ def get_comment_replies(thread_id, post_id, total_reply_count, cookies, headers)
                 if reply_info:
                     all_replies.append(reply_info)
             
-            # 添加短暂延迟避免请求过快
+            # 进一步减少爬取延迟
             if page < total_pages:
-                time.sleep(0.5 + random.random())  # 随机延迟0.5-1.5秒
+                time.sleep(0.01 + random.random() * 0.04)  # 随机延迟0.01-0.05秒
             
         except Exception as e:
             print(f"获取第 {page} 页回复时出错: {str(e)}")
@@ -533,13 +589,15 @@ def continue_crawling(post_ids, start_page, completed_posts, excel_file, current
                         print("1. 更新Cookie和Header并重试")
                         print("2. 保存进度并退出")
                         print("3. 跳过当前帖子")
-                        choice = input("请选择 (1/2/3): ").strip()
+                        
+                        # 使用带超时的输入，默认选择3
+                        choice = input_with_timeout("请选择 (1/2/3): ", timeout=2, default="3").strip()
                         
                         if choice == "2":
-                            # 保存已爬取的数据
+                            # 保存已爬取的数据，使用追加模式
                             if all_posts_comments:
-                                save_comments_to_csv_all(all_posts_comments, csv_file)
-                                print(f"部分爬取的数据已保存到：{csv_file}")
+                                save_comments_to_csv_all(all_posts_comments, csv_file, append_mode=True)
+                                print(f"部分爬取的数据已追加到：{csv_file}")
                             
                             print(f"总共爬取了 {len(completed_posts)} 个帖子，{total_records} 条记录")
                             return
@@ -581,13 +639,15 @@ def continue_crawling(post_ids, start_page, completed_posts, excel_file, current
                 print("1. 更新Cookie和Header并重试")
                 print("2. 保存进度并退出")
                 print("3. 跳过当前帖子")
-                choice = input("请选择 (1/2/3): ").strip()
+                
+                # 使用带超时的输入，默认选择3
+                choice = input_with_timeout("请选择 (1/2/3): ", timeout=2, default="3").strip()
                 
                 if choice == "2":
-                    # 保存已爬取的数据
+                    # 保存已爬取的数据，使用追加模式
                     if all_posts_comments:
-                        save_comments_to_csv_all(all_posts_comments, csv_file)
-                        print(f"部分爬取的数据已保存到：{csv_file}")
+                        save_comments_to_csv_all(all_posts_comments, csv_file, append_mode=True)
+                        print(f"部分爬取的数据已追加到：{csv_file}")
                     
                     print(f"总共爬取了 {len(completed_posts)} 个帖子，{total_records} 条记录")
                     return
@@ -649,9 +709,9 @@ def continue_crawling(post_ids, start_page, completed_posts, excel_file, current
             save_progress(completed_posts, post_ids[min(i+1, len(post_ids)-1)], 1, excel_file)
             print(f"已保存进度，当前已爬取 {len(completed_posts)} 个帖子，{total_records} 条记录")
             
-        # 普通帖子间的延迟
+        # 进一步减少帖子间的延迟
         if i < len(post_ids) - 1:
-            delay_time = 1 + random.random()  # 1-2秒随机延迟
+            delay_time = 0.1 + random.random() * 0.2  # 0.1-0.3秒随机延迟
             print(f"等待 {delay_time:.2f} 秒后继续爬取下一个帖子...")
             time.sleep(delay_time)
             
@@ -708,6 +768,7 @@ def extract_reply_info(reply_item, parent_comment_id, is_hidden=False):
         try:
             # 处理单引号JSON问题
             data_field = data_field.replace("'", '"')
+            data_field = data_field.replace("&quot;", '"')
             field_data = json.loads(data_field)
             pid = field_data.get('pid', '')
             spid = field_data.get('spid', '')
@@ -1049,6 +1110,30 @@ def generate_credential_templates():
     except Exception as e:
         print(f"生成模板文件时出错: {str(e)}")
 
+def auto_continue_after_timeout():
+    """在程序可能卡住的地方提供自动继续的机制"""
+    global current_post_id, current_page, all_posts_comments, completed_posts, excel_file, csv_file
+    
+    # 延迟一段时间后检查
+    time.sleep(30)  # 30秒后检查程序是否可能卡住
+    
+    # 如果程序还在运行，这个函数会继续运行
+    print("\n检测到程序可能卡在输入等待，自动跳过当前帖子并继续...")
+    
+    # 保存当前进度
+    if current_post_id and current_page:
+        if current_post_id not in completed_posts:
+            completed_posts.append(current_post_id)
+            save_progress(completed_posts, current_post_id, current_page, excel_file)
+            
+            # 保存已爬取的数据
+            if all_posts_comments:
+                save_comments_to_csv_all(all_posts_comments, csv_file)
+    
+    # 这里我们不能优雅地继续程序流程，但至少可以保存进度
+    print("已保存进度，请重新启动程序继续爬取")
+    sys.exit(0)
+
 def main():
     global excel_file, csv_file, global_cookies, global_headers
     
@@ -1059,7 +1144,8 @@ def main():
     print("3. 退出")
     print("="*50)
     
-    choice = input("请选择操作 (1/2/3): ").strip()
+    # 默认选择"1. 开始/继续爬取"
+    choice = input_with_timeout("请选择操作 (1/2/3): ", timeout=5, default="1").strip()
     
     if choice == "2":
         generate_credential_templates()
@@ -1081,7 +1167,7 @@ def main():
     
     if progress:
         # 询问是否继续上次的爬取
-        choice = input("找到保存的进度，是否继续上次的爬取? (y/n): ").strip().lower()
+        choice = input_with_timeout("找到保存的进度，是否继续上次的爬取? (y/n): ", timeout=5, default="y").strip().lower()
         if choice == 'y':
             completed_posts = progress['completed_posts']
             current_post_id = progress['current_post_id']
@@ -1143,7 +1229,7 @@ if __name__ == "__main__":
         # 保存当前进度
         if current_post_id and current_page:
             save_progress(completed_posts, current_post_id, current_page, excel_file)
-        # 保存已爬取的数据
+        # 保存已爬取的数据，使用追加模式
         if all_posts_comments:
-            save_comments_to_csv_all(all_posts_comments, csv_file)
+            save_comments_to_csv_all(all_posts_comments, csv_file, append_mode=True)
         print("程序异常退出，但已保存进度和数据")
